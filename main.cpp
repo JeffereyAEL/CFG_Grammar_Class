@@ -19,7 +19,7 @@ int main(int argc, char* argv[])
 {
 	std::cout << " === Grammar Basic === " << std::endl;
 	std::map<std::string, Grammar> grammars{};
-	grammars["BasicSLang"] = { "S",
+	grammars["BasicLang"] = { "S",
 	{
 		{"S", "aAaba"},
 		{"A", "bAc"},
@@ -77,7 +77,7 @@ int main(int argc, char* argv[])
 		{"ADV", "furiously"},
 		{"ADV", "pointlessly"},
 		{"ADV", "slowly"},
-		{"ADV", "seflessly"},
+		{"ADV", "selflessly"},
 		{"ADV", "graciously"},
 		{"CONJ", "and"},
 		{"CONJ", "but"},
@@ -88,28 +88,24 @@ int main(int argc, char* argv[])
 		{"ENDP", " :("}
 	} };
 
-	/*while (true)
-	{
-		
-		std::string s = RequestUserInput("Input your desired string to parse: ");
-
-		Grammar grammar = *(--grammars.end());
-		int error = grammar.IsInLanguage(s);
-		if (error == 0)
-			std::cout << "\"" << s << "\" is in language" << std::endl << std::endl;
-		else if (error > 0)
-			std::cout << "\"" << s << "\" is not in language" << std::endl << std::endl;
-		else
-			std::cout << "\"" << s << "\" may be in language" << std::endl << std::endl;
-	}*/
 	while (true)
 	{
-		std::string s = RequestUserInput("=== Press ENTER to produce random words ===");
-		//for (auto it : grammars)
-		//{
-		//	std::cout << "in language " << it.first << " word \"" << it.second.GenRandomWord() << " Exists" << std::endl;
-		//}
-		std::cout << "in language \"Poetry\", word \"" << grammars["Poetry"].GenRandomWord() << "\" Exists" << std::endl;
+		std::string s = RequestUserInput("=== Enter a Language name to debug it ===\n [ BasicLang, LogicalLang, Poetry ] ");
+		s = "LogicalLang";
+		Grammar g = grammars[s];
+		if (g.IsValid())
+		{
+			std::string word = g.GenRandomWord(1607230971);
+			std::cout << "in language \"" << s << "\", the word \"" << word << "\" Exists" << std::endl;
+			if (g.IsInLanguage(word) == 0)
+			{
+				std::cout << "Debug test worked" << std::endl;
+			}
+			else
+			{
+				std::cout << "Debug test did not work" << std::endl;
+			}
+		}
 	}
 
 	return 0;

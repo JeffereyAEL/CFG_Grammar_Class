@@ -14,7 +14,7 @@ Grammar::Grammar(const string init_production, const multimap<string, string> pr
 	}
 	else
 	{
-		IsValid = true;
+		bIsValid = true;
 		InitVariable = string{ init_production };
 		RemoveLeftRecursion(productions);
 	}
@@ -38,13 +38,17 @@ void Grammar::ParseProduction(Production pro)
 	}
 
 	/// Handles Prime Variables
-	if (Index < CurrStr.size())
+	if (Index < CurrStr.length())
 	{
-		if (new_pro._varPrime() != string{ "" })
+		new_pro = FindValidProduct(pro._varPrime());
+		if (new_pro._variable() != "")
 		{
-			new_pro = FindValidProduct(pro._varPrime());
 			ParseProduction(new_pro);
 		}
+	}
+	else
+	{
+		cout << "Non-prime w production " << pro._variable() << " -> " << pro._product() << "(" << pro._varPrime() << ") @ index " << Index << endl;
 	}
 }
 
@@ -82,7 +86,6 @@ bool Grammar::IsVariable(string str, int str_i, string& var)
 Production Grammar::FindValidProduct(string var)
 {
 	auto it = Productions.find(var);
-
 	bool valid = false;
 	for (; it != Productions.end(); ++it)
 	{
@@ -92,15 +95,19 @@ Production Grammar::FindValidProduct(string var)
 			string pro = p._product();
 			int pro_len = pro.length();
 			int i = -1;
-			string temp{ "" };
+			string temp{ };
 			while (!IsVariable(pro, i+1, temp))
 			{
 				++i;
-				if (i >= pro_len)
+				if (i+1 == pro_len)
 					break;
 			}
-			cout << CurrStr.substr(Index, Index + i) << " == " << pro.substr(0, i) << endl;
-			if (CurrStr.substr(Index, Index + i) == pro.substr(0, i)) // Is this the correct production for this variable
+
+			//cout << "from var " << var << " subtring '" << pro.substr(0, i+1) << "'" << endl;
+			//cout << "i = " << i << endl;
+			cout << CurrStr.substr(Index,i + 1) << " == " << pro.substr(0, i+1)
+				<< endl;
+			if (CurrStr.substr(Index,i + 1) == pro.substr(0, i+1)) // Is this the correct production for this variable
 			{
 				//cout << CurrStr.substr(Index, i) << " == " << pro.substr(0, i) << endl;
 				return *it;
@@ -111,22 +118,23 @@ Production Grammar::FindValidProduct(string var)
 	if (!valid && Index < CurrStr.length())
 	{
 		cout << "No valid Production found for '" << CurrStr << "' at index " << Index << " with Var '" << var << "'" << endl;
-		return { "", { "", "" } };
 	}
+	return { "", { "", "" } };
 }
 
 void Grammar::Match(const char c)
 {
+	//cout << "Matching" << endl;
 	if (CurrStr[Index] == c || ((int)CurrStr[Index] == 32 && (int)c == 0))
 	{
 		++Index;
 	}
 	else
 	{
-		cout << "Error         : Unexpected terminant in '" << CurrStr << "' where '" << c << "' was expected at index " << Index << endl;
-		cout << "char comp     : '" << CurrStr[Index] << "' != '" << c << "'" << endl;
-		cout << "integer comp  : '" << (int)CurrStr[Index] << "' != '" << (int)c << "'" << endl;
-		cout << "==========" << endl;
+		//cout << "Error         : Unexpected terminant in '" << CurrStr << "' where '" << c << "' was expected at index " << Index << endl;
+		cout << "ERROR - char comp : '" << CurrStr[Index] << "' != '" << c << "'" << endl;
+		//cout << "integer comp  : '" << (int)CurrStr[Index] << "' != '" << (int)c << "'" << endl;
+		//cout << "==========" << endl;
 		++Error;
 	}
 }
@@ -218,7 +226,7 @@ void Grammar::FetchRandomProduction(string& word, const string v)
 
 	unsigned index = rand() % products.size();
 	auto it2 = products.begin();
-	for (int i = 0; i < index; ++i)
+	for (unsigned i = 0; i < index; ++i)
 		++it2;
 	Product p = *it2;
 	bool using_prime = false;
@@ -230,10 +238,10 @@ void Grammar::FetchRandomProduction(string& word, const string v)
 		}
 	}
 	
-	if (using_prime)
-		cout << "from " << v << " chose : " << p[0] << p[1] << endl;
-	else
-		cout << "from " << v << " chose : " << p[0] << endl;
+	//if (using_prime)
+	//	cout << "from " << v << " chose : " << p[0] << p[1] << endl;
+	//else
+	//	cout << "from " << v << " chose : " << p[0] << endl;
 
 	string product = p[0];
 	string var{};
@@ -242,7 +250,7 @@ void Grammar::FetchRandomProduction(string& word, const string v)
 		if (IsVariable(product, i, var))
 		{
 			FetchRandomProduction(word, var);
-			i += var.length();
+			i += var.length()-1;
 		}
 		else
 		{
@@ -256,7 +264,7 @@ void Grammar::FetchRandomProduction(string& word, const string v)
 
 int Grammar::IsInLanguage(const string s)
 {
-	if (IsValid)
+	if (bIsValid)
 	{
 		Index = 0;
 		Error = 0;
@@ -268,7 +276,7 @@ int Grammar::IsInLanguage(const string s)
 			cout << "Parser exiting without evaluating full length of string" << endl;
 			--Error;
 		}
-		return (Error);
+		return Error;
 	}
 
 	cout << "Cannot Identify IsInLanguage with invalid CFG" << endl;
@@ -277,11 +285,13 @@ int Grammar::IsInLanguage(const string s)
 
 string Grammar::GenRandomWord(const uint64_t seed)
 {
-	if (IsValid)
+	if (bIsValid)
 	{
 		if (!seed)
 		{
-			srand(clock());
+			uint64_t s = time(NULL);
+			srand(s);
+			cout << "Random seed = " << to_string(s) << endl;
 		}
 		else
 		{

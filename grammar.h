@@ -24,12 +24,12 @@ private:
 	std::string CurrStr;
 
 	/// Whether this is a valid Grammar
-	bool IsValid;
+	bool bIsValid;
 
 	/// The current location in CurrString
 	int Index;
 
-	/// The number of errors we've encounted while parsing
+	/// The number of errors we've encountered while parsing
 	/// > 0 means invalid, == 0 means within language, < 0 means incomplete parse
 	int Error;
 
@@ -41,10 +41,20 @@ public:
 private:
 protected:
 public:
-	/// Generates a Grammar
-	Grammar() : IsValid{ false }, Productions{}, Vars{}, InitVariable{}, CurrStr{}, Index{0}, Error{0} {};
+	/// Generates default empty grammar
+	Grammar() : bIsValid{ false }, Productions{}, Vars{}, InitVariable{}, CurrStr{}, Index{0}, Error{0} {};
+
+	/// Generates grammars
 	Grammar(const std::string init_production, const std::multimap<std::string, std::string> productions);
 
+	// =============================
+	// ===== GETTERS_/_SETTERS =====
+	// =============================
+private:
+protected:
+public:
+	bool IsValid() const { return bIsValid; }
+	
 	// ===================
 	// ===== METHODS =====
 	// ===================
@@ -74,5 +84,5 @@ public:
 	int IsInLanguage(const std::string s);
 
 	/// Returns a random "Word" from within the language
-	std::string GenRandomWord(const uint64_t seed = 0); /*** TODO: Add in a seed that dicates the random generation */
+	std::string GenRandomWord(const uint64_t seed = 0); // TODO: Add in a seed that dictates the random generation 
 };
