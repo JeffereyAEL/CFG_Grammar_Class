@@ -15,18 +15,19 @@ std::string RequestUserInput(std::string s)
 	return { c };
 }
 
+using namespace Automata;
+
 int main(int argc, char* argv[])
 {
-	std::cout << " === Grammar Basic === " << std::endl;
 	std::map<std::string, Grammar> grammars{};
 	grammars["BasicLang"] = { "S",
 	{
-		{"S", "aAaba"},
+		{"S", "SSaAaba"},
 		{"A", "bAc"},
 		{"A", "d"}
 	} };
-
-	std::cout << std::endl << " === Logical Grammar w/ LR === " << std::endl;
+	grammars["BasicLang"].SetName("BasicLang");
+	
 	grammars["LogicalLang"] = { "E",
 	{
 		{"E", "E or E"},
@@ -36,8 +37,8 @@ int main(int argc, char* argv[])
 		{"E", "true"},
 		{"E", "false"}
 	} };
-
-	std::cout << std::endl << " === Crappy Poem Grammar === " << std::endl;
+	grammars["LogicalLang"].SetName("LogicalLang");
+	
 	grammars["Poetry"] = { "S",
 	{
 		{"S", "NP  VP ENDP"},
@@ -87,26 +88,31 @@ int main(int argc, char* argv[])
 		{"ENDP", "..."},
 		{"ENDP", " :("}
 	} };
+	grammars["Poetry"].SetName("Poetry");
+	
+	//while (true)
+	//{
+	//	std::string s = RequestUserInput("=== Enter a Language name to debug it ===\n [ BasicLang, LogicalLang, Poetry ] ");
+	//	s = "LogicalLang";
+	//	Grammar g = grammars[s];
+	//	if (g.IsValid())
+	//	{
+	//		std::string word = g.GenRandomWord(1607230971);
+	//		std::cout << "in language \"" << s << "\", the word \"" << word << "\" Exists" << std::endl;
+	//		if (g.IsInLanguage(word) == 0)
+	//		{
+	//			std::cout << "Debug test worked" << std::endl;
+	//		}
+	//		else
+	//		{
+	//			std::cout << "Debug test did not work" << std::endl;
+	//		}
+	//	}
+	//}
 
-	while (true)
+	for (const auto g : grammars)
 	{
-		std::string s = RequestUserInput("=== Enter a Language name to debug it ===\n [ BasicLang, LogicalLang, Poetry ] ");
-		s = "LogicalLang";
-		Grammar g = grammars[s];
-		if (g.IsValid())
-		{
-			std::string word = g.GenRandomWord(1607230971);
-			std::cout << "in language \"" << s << "\", the word \"" << word << "\" Exists" << std::endl;
-			if (g.IsInLanguage(word) == 0)
-			{
-				std::cout << "Debug test worked" << std::endl;
-			}
-			else
-			{
-				std::cout << "Debug test did not work" << std::endl;
-			}
-		}
+		std::cout << g.second << std::endl;
 	}
-
 	return 0;
 }

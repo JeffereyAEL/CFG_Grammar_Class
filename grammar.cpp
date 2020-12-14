@@ -3,66 +3,78 @@
 #include <set>
 #include <list>
 #include <time.h>
+#include "DebugHelpers.h"
 
 using namespace std;
+using namespace Automata;
 
-Grammar::Grammar(const string init_production, const multimap<string, string> productions) : Grammar()
+Grammar::Grammar(const string _Init_production, const multimap<string, string> _Productions) : Grammar()
 {
-	if (productions.find(init_production) == productions.end())
+	if (_Productions.find(_Init_production) == _Productions.end())
 	{
-		cout << "Attempt to create invalid CFG : '" << init_production << "' not found in list of products" << endl;
+		cout << "Attempt to create invalid CFG : '" << _Init_production << "' not found in list of products" << endl;
 	}
 	else
 	{
 		bIsValid = true;
-		InitVariable = string{ init_production };
-		RemoveLeftRecursion(productions);
+		InitVariable = _Init_production;
+		Productions = _Productions;
+		for (auto it = Productions.begin(); it != Productions.end(); ++it)
+			Vars.insert(it->first); // Vars is a set, so this may be redundant but we won't get duplicates
+		
+		RemoveLeftRecursion();
 	}
 }
 
-void Grammar::ParseProduction(Production pro)
+void Grammar::ParseProduction(Production _Pro)
 {
-	cout << pro._variable() << " -> " << pro._product() << "(" << pro._varPrime() << ")" << endl;
+	cout << _Pro.V() << " -> " << _Pro.P() << "(" << _Pro.VP() << ")" << endl;
 
-	Production new_pro{ "", { "", "" } };
+	Production new_pro{ "", { "", {""} } };
 	string variable;
-	for (int pro_i = 0; pro_i < pro._product().length(); ++pro_i)
+	for (int pro_i = 0; pro_i < _Pro.P().length(); ++pro_i)
 	{
-		if (IsVariable(pro._product(), pro_i, variable))
+		if (IsVariable(_Pro.P(), pro_i, variable))
 		{
 			pro_i += variable.length();
 			new_pro = FindValidProduct(variable);
 			ParseProduction(new_pro);
 		}
-		Match(pro._product()[pro_i]);
+		Match(_Pro.P()[pro_i]);
 	}
 
 	/// Handles Prime Variables
 	if (Index < CurrStr.length())
 	{
-		new_pro = FindValidProduct(pro._varPrime());
-		if (new_pro._variable() != "")
+		new_pro = FindValidProduct(_Pro.VP().str());
+		if (new_pro.V() != "")
 		{
 			ParseProduction(new_pro);
+		}
+		else
+		{
+			//cout << "Production w/o Prime " << _Pro.V() << " -> " << _Pro.P() << "(" << _Pro.VP() << ") @ index " << Index << endl;
 		}
 	}
 	else
 	{
-		cout << "Non-prime w production " << pro._variable() << " -> " << pro._product() << "(" << pro._varPrime() << ") @ index " << Index << endl;
+		//cout << "Production w/o Prime " << _Pro.V() << " -> " << _Pro.P() << "(" << _Pro.VP() << ") @ index " << Index << endl;
 	}
+
+	cout << "Leaving ParseProduction" << endl;
 }
 
-bool Grammar::IsVariable(string str, int str_i, string& var)
+bool Grammar::IsVariable(string _Str, int _Str_i, string& _Var)
 {
 	for (string v : Vars)
 	{
-		int i_ = str_i;
+		int i_ = _Str_i;
 		bool match = true;
 		for (const char c : v)
 		{
-			if (i_ < str.length())
+			if (i_ < _Str.length())
 			{
-				if (str[i_++] != c)
+				if (_Str[i_++] != c)
 				{
 					match = false;
 					break;
@@ -76,24 +88,25 @@ bool Grammar::IsVariable(string str, int str_i, string& var)
 		}
 		if (match)
 		{
-			var = v;
+			_Var = v;
+			cout << "Leaving IsVariable A" << endl;
 			return true;
 		}
 	}
+	cout << "Leaving IsVariable B" << endl;
 	return false;
 }
 
-Production Grammar::FindValidProduct(string var)
+Production Grammar::FindValidProduct(const string _Var)
 {
-	auto it = Productions.find(var);
-	bool valid = false;
+	auto it = Productions.find(_Var);
 	for (; it != Productions.end(); ++it)
 	{
 		Production p = *it;
-		if ( p._variable() == var)
+		if ( p.V() == _Var)
 		{
-			string pro = p._product();
-			int pro_len = pro.length();
+			string pro = p.P();
+			const int pro_len = pro.length();
 			int i = -1;
 			string temp{ };
 			while (!IsVariable(pro, i+1, temp))
@@ -102,123 +115,101 @@ Production Grammar::FindValidProduct(string var)
 				if (i+1 == pro_len)
 					break;
 			}
-
-			//cout << "from var " << var << " subtring '" << pro.substr(0, i+1) << "'" << endl;
-			//cout << "i = " << i << endl;
-			cout << CurrStr.substr(Index,i + 1) << " == " << pro.substr(0, i+1)
-				<< endl;
-			if (CurrStr.substr(Index,i + 1) == pro.substr(0, i+1)) // Is this the correct production for this variable
+			
+			if (CurrStr.substr(Index,i + 1) == pro.substr(0, i+1))
 			{
-				//cout << CurrStr.substr(Index, i) << " == " << pro.substr(0, i) << endl;
+				//cout << CurrStr.substr(Index,i + 1) << " == " << pro.substr(0, i+1) << endl;
+				cout << "Leaving FindValidProduct A" << endl;
 				return *it;
-				valid = true;
 			}
 		}
 	}
-	if (!valid && Index < CurrStr.length())
-	{
-		cout << "No valid Production found for '" << CurrStr << "' at index " << Index << " with Var '" << var << "'" << endl;
-	}
-	return { "", { "", "" } };
+	//cout << "No valid Production found for '" << CurrStr << "' at index " << Index << " with Var '" << _Var << "'" << endl;
+	cout << "Leaving FindValidProduct B" << endl;
+	return { "", { "", {""} } };
 }
 
 void Grammar::Match(const char c)
 {
-	//cout << "Matching" << endl;
-	if (CurrStr[Index] == c || ((int)CurrStr[Index] == 32 && (int)c == 0))
+	if (CurrStr[Index] == c || (static_cast<int>(CurrStr[Index]) == 32 && static_cast<int>(c) == 0))
 	{
 		++Index;
 	}
 	else
 	{
-		//cout << "Error         : Unexpected terminant in '" << CurrStr << "' where '" << c << "' was expected at index " << Index << endl;
-		cout << "ERROR - char comp : '" << CurrStr[Index] << "' != '" << c << "'" << endl;
-		//cout << "integer comp  : '" << (int)CurrStr[Index] << "' != '" << (int)c << "'" << endl;
-		//cout << "==========" << endl;
+		//cout << "ERROR - char comp : '" << CurrStr[Index] << "' != '" << c << "'" << endl;
 		++Error;
 	}
+	cout << "Leaving Match" << endl;
 }
 
-void Grammar::RemoveLeftRecursion(const multimap<string, string> productions)
+void Grammar::RemoveLeftRecursion()
 {
-	/// Record all the current variables this CFG wants to use
+	list<Product> lr, nonlr;
+	string p;
+	int start, end;
+	CFG temp_productions{};
+	bool dirty = true;
 	
-
-	for (auto it = productions.begin(); it != productions.end(); ++it)
+	while (dirty)
 	{
-		if (Vars.find(it->first) == Vars.end())
-		{
-			Vars.insert(it->first);
-		}
-	}
+		dirty = false;
 
-	Productions = multimap<string, Product>{};
-
-	list<string> lr;
-	list<string> nonlr;
-	/// For every variable we've recored, and
-	for (const string v : Vars)
-	{
-		lr = list<string>{};
-		nonlr = list<string>{};
-		/// For every product associated with that variable, sort them as LR or not
-		for (auto it = productions.find(v); it != productions.end(); ++it)
+		temp_productions = Productions; // Set up temp to be read from
+		Productions = CFG{};  			// clear the class Productions to be refilled
+		
+		for (const string v : Vars)
 		{
-			if (it->first == v)
+			lr = list<Product>{};
+			nonlr = list<Product>{};
+			/// For every product associated with that variable, sort them as LR or not
+			for (auto it = temp_productions.find(v); it != temp_productions.end(); ++it)
 			{
-				string p;
-				if (v == it->second.substr(0, v.length())) // Left recursion
+				if (it->V() == v)
 				{
-					int start = v.length();
-					p = it->second.substr(start, it->second.length() - v.length());
-					lr.push_back(p);
-				}
-				else
-				{
-					p = it->second;
-					nonlr.push_back(p);
+					if (v == it->P().substr(0, v.length())) // Left recursion
+						lr.push_back( it->PRODUCT() );
+					else
+						nonlr.push_back(it->PRODUCT());
 				}
 			}
-		}
-
-		if (lr.size() > 0) // if left recursion present
-		{
-			string vp = v + "Prime";
-			if (Vars.find(v) != Vars.end())
-				cout << "Prime variable for the removal of LR, '" << vp << "' already exists in this Grammar :: this is undefined behavior and could cause errors" << std::endl;
-			for (string p : nonlr)
+			
+			if (lr.size() == 0)  		// No LR exists for this Variable
 			{
-				Productions.insert({ v, { p, vp } });
-				cout << v << " -> " << p << endl;
-				cout << v << " -> " << p << vp << endl;
-
+				for (Product pro : nonlr)
+					Productions.insert({ v, pro });
 			}
-			for (string p : lr)
+			else						// LR Exists for this Variable
 			{
-				Productions.insert({ vp, { p, vp } });
-				cout << vp << " -> " << p << endl;
-				cout << vp << " -> " << p << vp << endl;
+				dirty = true;
+				
+				Variable vp = nonlr.begin()->second;
+				vp += (v + "Prime");
+				for (Product pro : nonlr)
+				{
+					Productions.insert({ v, { pro.first, vp } });
+				}
+				for (Product pro : lr)
+				{
+					
+					start = v.length();
+					end = pro.first.length() - v.length();
+					p = pro.first.substr(start, end);
+					Productions.insert({ vp.str(), { p, vp } });
+				}
 			}
-		}
-		else
-		{
-			for (string p : nonlr)
-			{
-				Productions.insert({ v, { p, "" }});
-				cout << v << " -> " << p << "" << endl;
-			}
+		
 		}
 	}
 }
 
-void Grammar::FetchRandomProduction(string& word, const string v)
+void Grammar::FetchRandomProduction(string& _Word, const string _V)
 {
-
 	list<Product> products{};
-	auto it = Productions.find(v);
+	auto it = Productions.find(_V);
 	for (; it != Productions.end(); ++it)
 	{
-		if (it->_variable() == v)
+		if (it->V() == _V)
 		{
 			products.push_back(it->second);
 		}
@@ -230,45 +221,39 @@ void Grammar::FetchRandomProduction(string& word, const string v)
 		++it2;
 	Product p = *it2;
 	bool using_prime = false;
-	if ( p[1] != string{})
+	if ( p.second.str() != string{})
 	{
 		if (rand() % 2)
 		{
 			using_prime = true;
 		}
 	}
-	
-	//if (using_prime)
-	//	cout << "from " << v << " chose : " << p[0] << p[1] << endl;
-	//else
-	//	cout << "from " << v << " chose : " << p[0] << endl;
-
-	string product = p[0];
+	string product = p.first;
 	string var{};
 	for (int i = 0; i < product.length(); ++i)
 	{
 		if (IsVariable(product, i, var))
 		{
-			FetchRandomProduction(word, var);
+			FetchRandomProduction(_Word, var);
 			i += var.length()-1;
 		}
 		else
 		{
-			word += product[i];
+			_Word += product[i];
 			//cout << "currWord = " << word << endl;
 		}
 	}
 	if (using_prime)
-		FetchRandomProduction(word, p[1]);
+		FetchRandomProduction(_Word, p[1]);
 }
 
-int Grammar::IsInLanguage(const string s)
+int Grammar::IsInLanguage(const string _S)
 {
 	if (bIsValid)
 	{
 		Index = 0;
 		Error = 0;
-		CurrStr = s;
+		CurrStr = _S;
 		Production pro = FindValidProduct(InitVariable);
 		ParseProduction(pro);
 		if (Index < CurrStr.length() && !Error)
@@ -283,11 +268,11 @@ int Grammar::IsInLanguage(const string s)
 	return false;
 }
 
-string Grammar::GenRandomWord(const uint64_t seed)
+string Grammar::GenRandomWord(const uint64_t _Seed)
 {
 	if (bIsValid)
 	{
-		if (!seed)
+		if (!_Seed)
 		{
 			uint64_t s = time(NULL);
 			srand(s);
@@ -295,7 +280,7 @@ string Grammar::GenRandomWord(const uint64_t seed)
 		}
 		else
 		{
-			srand(seed);
+			srand(_Seed);
 		}
 		string word{};
 		FetchRandomProduction(word, InitVariable);
@@ -304,4 +289,9 @@ string Grammar::GenRandomWord(const uint64_t seed)
 
 	cout << "Cannot use GenRandomWord with invalid CFG" << endl;
 	return string{};
+}
+
+std::ostream& operator<<(std::ostream& os, const Grammar& g)
+{
+	return os << g.Name << endl << g.Productions;
 }

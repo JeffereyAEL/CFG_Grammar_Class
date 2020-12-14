@@ -138,10 +138,15 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="CFG.cpp" />
+    <ClCompile Include="DebugHelpers.cpp" />
     <ClCompile Include="grammar.cpp" />
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="Production.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="CFG.h" />
+    <ClInclude Include="DebugHelpers.h" />
     <ClInclude Include="grammar.h" />
     <ClInclude Include="Production.h" />
   </ItemGroup>
